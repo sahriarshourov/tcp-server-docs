@@ -1,0 +1,273 @@
+ 🧠 TCP Server Explained — “Shourov’s Server Room”
+
+## 📖 The Story Begins: Shourov’s Server Room
+One day, Shourov built a “server room” inside his computer.  
+This room works like magic — whenever someone knocks on the door (meaning connects), Shourov opens it and says:
+
+> “Hey there! What do you need?” 😄  
+
+That server room is basically a **TCP Server**.
+
+---
+
+## ⚙️ What Does a TCP Server Do?
+Shourov’s server follows a strict rule called **TCP (Transmission Control Protocol)** —  
+its job is to make sure:
+- No data is lost  
+- No data is duplicated  
+- And everything arrives in the correct order  
+
+When Shourov sends a message to Aziz uncle, TCP ensures Aziz receives it exactly as it was sent.  
+It uses **acknowledgments** (“Got it!”) and **retransmissions** (“Didn’t get that, please resend.”) to ensure reliability.
+
+---
+
+## 💬 The Client–Server Conversation
+When Aziz uncle (the client) connects to Shourov’s server, Shourov says:
+> “You’ve knocked on my door — now we’re connected.”  
+
+From then on, both can communicate freely — Aziz requests, Shourov responds.  
+This is the foundation of the **Client–Server Communication Model**.
+
+---
+
+## 💻 Real-World Example — Redis
+**Redis**, a popular in-memory database, works exactly like this.  
+When you use a Redis client to **SET** or **GET** data,  
+your computer establishes a TCP connection to the Redis server and exchanges data.
+
+---
+
+## 🌐 In Summary
+> A **TCP Server** is a program that establishes reliable connections with clients,  
+> receives their requests, and sends back responses using the TCP protocol.
+
+---
+
+# 👑 Shourov’s TCP Kingdom
+
+## ⚙️ Core TCP Features
+
+### 🧱 1. Reliable
+TCP ensures that no data is lost or reordered.  
+If Shourov sends three messages — A, B, C — Aziz will receive them in the same order.  
+If any message is lost, TCP retransmits it automatically.
+
+### 🔗 2. Connection-Oriented
+Before communication begins, TCP performs a **Three-Way Handshake**:
+
+1️⃣ Client → Server: SYN  
+2️⃣ Server → Client: SYN + ACK  
+3️⃣ Client → Server: ACK  
+
+Only then is the connection **ESTABLISHED**.
+
+### 💧 3. Stream-Based
+TCP transmits data as a continuous stream rather than separate packets —  
+like a river flowing smoothly 🌊
+
+---
+
+## 🚀 TCP Connection Lifecycle
+
+1️⃣ **Socket Creation** → Shourov opens his ears (creates a socket)  
+2️⃣ **Binding** → Attaches to a specific IP and Port  
+3️⃣ **Listening** → Waits for a knock  
+4️⃣ **Accepting Connections** → Welcomes the client  
+5️⃣ **Data Exchange** → They talk (PING ↔ PONG)  
+6️⃣ **Termination** → Politely closes the connection  
+
+---
+
+## 🤝 Three-Way Handshake
+
+| Step | Message | Meaning |
+|------|----------|----------|
+| 1️⃣ | SYN | Client: “I want to connect.” |
+| 2️⃣ | SYN + ACK | Server: “I hear you and I’m ready.” |
+| 3️⃣ | ACK | Client: “Let’s talk!” |
+
+📍 Both are now in **ESTABLISHED** state — connection ready! 🎉
+
+---
+
+## 🧹 Connection Termination
+
+| Step | Direction | Description |
+|------|------------|-------------|
+| 1️⃣ | Client → Server | Sends FIN (says goodbye) |
+| 2️⃣ | Server → Client | Sends ACK |
+| 3️⃣ | Server → Client | Sends FIN |
+| 4️⃣ | Client → Server | Sends ACK (connection closed) |
+
+Finally, both sides move to the **CLOSED** state.
+
+---
+
+## ☕ Shourov’s Tea Stall — Understanding Sockets
+
+Imagine Shourov opens a small tea stall ☕  
+The door is his **socket**.  
+When Aziz uncle says, “One cup of tea, please!”  
+They establish a communication channel — that’s **Socket Communication**.
+
+**In short:**  
+> Socket = Network Communication Endpoint  
+
+In Python, this is easily handled using the `socket` module.
+
+---
+
+## ⚙️ Types of Sockets
+
+| Type | Description |
+|------|--------------|
+| AF_INET | IPv4 communication |
+| SOCK_STREAM | Reliable TCP stream |
+| SOCK_DGRAM | Fast but unreliable UDP communication |
+
+---
+
+## 🪄 Key Socket Functions
+
+| Function | Purpose |
+|-----------|----------|
+| socket() | Create a new socket |
+| bind() | Assign IP and port |
+| listen() | Start listening for connections |
+| accept() | Accept a client connection |
+| recv() | Receive data |
+| send() | Send data |
+| close() | Close the connection |
+
+---
+
+## ⚙️ Redis’ TCP Server Model
+
+Redis handles thousands of clients at once using a **single-threaded event loop**.  
+That means one thread continuously listens for:
+- Who is connecting  
+- Who is sending a command  
+- Who needs a response  
+
+This makes Redis simple and extremely fast — without multithreading complexity.
+
+---
+
+## 🧪 Lab 1: Minimal TCP Server (Python)
+
+```python
+import socket
+import threading
+
+class TCPServer:
+    def __init__(self, host='localhost', port=6379):
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server_socket.bind((host, port))
+        self.server_socket.listen(5)
+        print(f"Server listening on {host}:{port}")
+    
+    def handle_client(self, conn, addr):
+        print(f"Connected by {addr}")
+        try:
+            while True:
+                data = conn.recv(1024).decode().strip()
+                if not data:
+                    break
+                if data.upper() == "PING":
+                    conn.send(b"+PONG\r\n")
+                else:
+                    conn.send(b"-ERR Unknown command\r\n")
+        except Exception as e:
+            conn.send(f"-ERR {str(e)}\r\n".encode())
+        finally:
+            conn.close()
+            print(f"Disconnected: {addr}")
+    
+    def run(self):
+        try:
+            while True:
+                conn, addr = self.server_socket.accept()
+                threading.Thread(target=self.handle_client, args=(conn, addr)).start()
+        except KeyboardInterrupt:
+            print("\nShutting down server...")
+        finally:
+            self.server_socket.close()
+
+if __name__ == "__main__":
+    server = TCPServer()
+    server.run()
+```
+
+---
+
+## 🔍 How to Run It
+
+1️⃣ Save the file as `tcp_server.py`  
+2️⃣ Run it:
+```bash
+python tcp_server.py
+```
+3️⃣ Open another terminal:
+```bash
+telnet localhost 6379
+```
+4️⃣ Type:
+```
+PING
+```
+📩 Response:
+```
++PONG
+```
+
+5️⃣ Type:
+```
+HELLO
+```
+📩 Response:
+```
+-ERR Unknown command
+```
+
+✅ You can open multiple terminals and connect simultaneously.
+
+---
+
+## 🧭 Summary
+
+| Concept | Description |
+|----------|--------------|
+| Socket | A network communication door |
+| TCP | Reliable, connection-oriented protocol |
+| Redis Model | Single-threaded event loop (fast and simple) |
+| Python Socket Server | Mini Redis-like TCP server |
+| Command | PING → PONG, others return error |
+
+---
+
+## 💬 PING ↔ PONG Explained
+
+**PING ↔ PONG** are simple test messages used to check if the connection is alive.
+
+### 🧠 Example
+Aziz: “Hey, can you hear me?” 🔊 → PING  
+Shourov: “Yes, I’m here!” ☕ → PONG  
+
+### ⚙️ Technically
+- **PING:** Client asks if the server is alive.  
+- **PONG:** Server confirms it’s active.  
+- If no PONG is received → the server is likely down or disconnected.
+
+### 🧱 In Redis
+Command:
+```
+PING
+```
+Response:
+```
+PONG
+```
+
+That means — the Redis server is running fine ✅
